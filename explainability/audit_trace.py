@@ -2,22 +2,22 @@ def generate_audit_trace(df, kpis):
     return {
         "Data Completeness": {
             "score": 30,
-            "reason": "All required ESG columns present",
-            "improvement": "None required"
+            "reason": "All required ESG data columns are present",
+            "improvement": "No action required",
         },
         "Emissions Coverage": {
             "score": 30,
-            "reason": "Scope 1 and Scope 2 emissions available",
-            "improvement": "Add Scope 3 for extended coverage"
+            "reason": "Scope 1 and Scope 2 emissions are calculated",
+            "improvement": "Include Scope 3 supplier emissions",
         },
         "Renewable Transparency": {
-            "score": 6,
-            "reason": "Renewable energy share below 20%",
-            "improvement": "Increase renewable sourcing"
+            "score": 6 if kpis["Renewable Energy (%)"] < 20 else 12,
+            "reason": f"Renewable energy share is {kpis['Renewable Energy (%)']}%",
+            "improvement": "Increase renewable sourcing to improve score",
         },
         "Framework Alignment": {
             "score": 20,
-            "reason": "CSRD and GRI mappings implemented",
-            "improvement": "Extend to SASB/TCFD disclosures"
-        }
+            "reason": "CSRD, GRI, SASB, and TCFD mappings available",
+            "improvement": "Expand framework coverage depth",
+        },
     }
