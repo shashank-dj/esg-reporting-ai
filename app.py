@@ -14,40 +14,22 @@ st.markdown("### Explore the platform")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.page_link(
-        "pages/1_Overview.py",
-        label="📊 ESG Overview",
-        help="Operational ESG metrics and emissions overview"
-    )
+    if st.button("📊 ESG Overview", use_container_width=True):
+        st.switch_page("pages/1_Overview.py")
 
-    st.page_link(
-        "pages/2_Frameworks.py",
-        label="📘 Framework Compliance",
-        help="CSRD, GRI, SASB, TCFD mappings"
-    )
+    if st.button("📘 Framework Compliance", use_container_width=True):
+        st.switch_page("pages/2_Frameworks.py")
 
 with col2:
-    st.page_link(
-        "pages/3_Audit_&_Risk.py",
-        label="🛡️ Audit & Risk",
-        help="Audit readiness score and explainability"
-    )
+    if st.button("🛡️ Audit & Risk", use_container_width=True):
+        st.switch_page("pages/3_Audit_&_Risk.py")
 
-    st.page_link(
-        "pages/4_Scope_3.py",
-        label="🌍 Scope 3 Emissions",
-        help="Supplier-based Scope 3 estimation"
-    )
+    if st.button("🌍 Scope 3 Emissions", use_container_width=True):
+        st.switch_page("pages/4_Scope_3.py")
 
 with col3:
-    st.page_link(
-        "pages/5_Maturity.py",
-        label="📈 CSRD Maturity",
-        help="CSRD maturity assessment by year"
-    )
+    if st.button("📈 CSRD Maturity", use_container_width=True):
+        st.switch_page("pages/5_Maturity.py")
 
-    st.page_link(
-        "pages/6_Reports.py",
-        label="📄 Reports",
-        help="Download ESG and CSRD reports"
-    )
+    if st.button("📄 Reports", use_container_width=True):
+        st.switch_page("pages/6_Reports.py")
