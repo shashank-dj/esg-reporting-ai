@@ -158,7 +158,8 @@ st.caption(
     "Audit readiness is calculated based on data completeness, emissions coverage, "
     "renewable transparency, and framework alignment."
 )
-
+with st.expander("🔍 Explain this score"):
+    st.json(audit_trace)
 # -----------------------------
 # CSRD Gap Analysis Report
 # -----------------------------
@@ -247,6 +248,8 @@ st.caption(
     "This heatmap provides a high-level view of ESG framework readiness "
     "across CSRD, GRI, SASB, and TCFD."
 )
+
+
 
 # -----------------------------
 # Raw Data Viewer
