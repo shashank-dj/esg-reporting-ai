@@ -7,6 +7,7 @@ from reports.pdf_report import generate_esg_pdf
 from frameworks.csrd_gri_mapping import get_csrd_gri_mapping
 from audit.audit_score import calculate_audit_readiness_score
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
+from esg.scope3 import estimate_scope3_emissions, aggregate_scope3_kpi
 
 # -----------------------------
 # App Configuration
@@ -169,6 +170,36 @@ st.download_button(
     data=csrd_pdf_bytes,
     file_name="csrd_gap_analysis_report.pdf",
     mime="application/pdf",
+)
+# -----------------------------
+# Scope 3 Emissions (Estimated)
+# -----------------------------
+st.subheader("🌍 Scope 3 Emissions (Estimated)")
+
+scope3_file = st.file_uploader(
+    "Upload Scope 3 Spend Data (CSV)",
+    type="csv",
+    key="scope3"
+)
+
+if scope3_file is not None:
+    scope3_df = pd.read_csv(scope3_file)
+else:
+    scope3_df = pd.read_csv("data/sample_scope3_spend.csv")
+
+scope3_result = estimate_scope3_emissions(scope3_df)
+scope3_total = aggregate_scope3_kpi(scope3_result)
+
+st.metric(
+    "Estimated Scope 3 CO₂ (kg)",
+    scope3_total
+)
+
+st.dataframe(scope3_result, use_container_width=True)
+
+st.caption(
+    "Scope 3 emissions are estimated using a spend-based methodology "
+    "(CSRD-acceptable for early maturity stages)."
 )
 
 # -----------------------------
