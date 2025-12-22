@@ -5,6 +5,7 @@ import plotly.express as px
 from esg.emissions import calculate_emissions, aggregate_kpis
 from reports.pdf_report import generate_esg_pdf
 from frameworks.csrd_gri_mapping import get_csrd_gri_mapping
+from audit.audit_score import calculate_audit_readiness_score
 
 # -----------------------------
 # App Configuration
@@ -73,20 +74,6 @@ trend_fig = px.line(
 st.plotly_chart(trend_fig, use_container_width=True)
 
 # -----------------------------
-# ESG Report Download
-# -----------------------------
-st.subheader("📄 ESG Report")
-
-pdf_bytes = generate_esg_pdf(kpis)
-
-st.download_button(
-    label="⬇️ Download ESG Report (PDF)",
-    data=pdf_bytes,
-    file_name="esg_environmental_report.pdf",
-    mime="application/pdf",
-)
-
-# -----------------------------
 # Facility-wise Emissions
 # -----------------------------
 st.subheader("🏭 Facility-wise Emissions")
@@ -124,7 +111,59 @@ st.caption(
 )
 
 # -----------------------------
+# Audit Readiness Score
+# -----------------------------
+st.subheader("🛡️ ESG Audit Readiness Score")
+
+audit_result = calculate_audit_readiness_score(df, kpis)
+
+score = audit_result["total_score"]
+breakdown = audit_result["breakdown"]
+
+if score >= 80:
+    status = "🟢 Audit Ready"
+elif score >= 50:
+    status = "🟡 Partially Ready"
+else:
+    status = "🔴 High Risk"
+
+st.metric(
+    label="Overall Audit Readiness (0–100)",
+    value=score,
+    delta=status,
+)
+
+breakdown_df = pd.DataFrame(
+    breakdown.items(),
+    columns=["Assessment Area", "Score Contribution"]
+)
+
+st.dataframe(
+    breakdown_df,
+    use_container_width=True,
+    hide_index=True,
+)
+
+st.caption(
+    "Audit readiness is calculated based on data completeness, emissions coverage, renewable transparency, and CSRD/GRI alignment."
+)
+
+# -----------------------------
 # Raw Data Viewer
 # -----------------------------
 with st.expander("🔍 View Raw ESG Data"):
     st.dataframe(df)
+
+# -----------------------------
+# ESG Report Download (END)
+# -----------------------------
+st.subheader("📄 Download ESG Report")
+
+pdf_bytes = generate_esg_pdf(kpis)
+
+st.download_button(
+    label="⬇️ Download ESG Environmental Report (PDF)",
+    data=pdf_bytes,
+    file_name="esg_environmental_report.pdf",
+    mime="application/pdf",
+)
