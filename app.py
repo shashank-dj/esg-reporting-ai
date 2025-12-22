@@ -6,6 +6,7 @@ from esg.emissions import calculate_emissions, aggregate_kpis
 from reports.pdf_report import generate_esg_pdf
 from frameworks.csrd_gri_mapping import get_csrd_gri_mapping
 from audit.audit_score import calculate_audit_readiness_score
+from reports.csrd_gap_analysis import generate_csrd_gap_pdf
 
 # -----------------------------
 # App Configuration
@@ -153,6 +154,22 @@ st.caption(
 # -----------------------------
 with st.expander("🔍 View Raw ESG Data"):
     st.dataframe(df)
+# -----------------------------
+# CSRD Gap Analysis Report
+# -----------------------------
+st.subheader("📑 CSRD Gap Analysis")
+
+csrd_pdf_bytes = generate_csrd_gap_pdf(
+    kpis=kpis,
+    audit_score=score
+)
+
+st.download_button(
+    label="⬇️ Download CSRD Gap Analysis (PDF)",
+    data=csrd_pdf_bytes,
+    file_name="csrd_gap_analysis_report.pdf",
+    mime="application/pdf",
+)
 
 # -----------------------------
 # ESG Report Download (END)
