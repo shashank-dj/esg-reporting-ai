@@ -168,3 +168,19 @@ with tab6:
         file_name="csrd_gap_analysis_report.pdf",
         mime="application/pdf",
     )
+# -----------------------------
+# TAB 7: Financial Impact
+# -----------------------------
+with tab7:
+    st.subheader("💰 ESG → Financial Impact")
+
+    st.markdown(
+        """
+        This module translates ESG performance into **financial risk and value signals**.
+        It provides directional insights to support **capital allocation, risk management,
+        and executive decision-making**.
+        """
+    )
+
+    st.divider()
+
