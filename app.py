@@ -2,14 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from esg.emissions import calculate_emissions, aggregate_kpis
-from reports.pdf_report import generate_esg_pdf
-from frameworks.csrd_gri_mapping import get_csrd_gri_mapping
-from audit.audit_score import calculate_audit_readiness_score
-from reports.csrd_gap_analysis import generate_csrd_gap_pdf
-from esg.scope3 import estimate_scope3_emissions, aggregate_scope3_kpi
-from audit.csrd_maturity import calculate_csrd_maturity
 from datetime import datetime
+
+from esg.emissions import calculate_emissions, aggregate_kpis
+from esg.scope3 import estimate_scope3_emissions, aggregate_scope3_kpi
+
+from audit.audit_score import calculate_audit_readiness_score
+from audit.csrd_maturity import calculate_csrd_maturity
+
+from frameworks.framework_registry import get_all_framework_mappings
+
+from reports.pdf_report import generate_esg_pdf
+from reports.csrd_gap_analysis import generate_csrd_gap_pdf
 
 # -----------------------------
 # App Configuration
@@ -63,16 +67,13 @@ st.subheader("📈 Emissions Trend")
 
 df["date"] = pd.to_datetime(df["date"])
 
-trend_df = (
-    df.groupby("date", as_index=False)["total_co2_kg"]
-    .sum()
-)
+trend_df = df.groupby("date", as_index=False)["total_co2_kg"].sum()
 
 trend_fig = px.line(
     trend_df,
     x="date",
     y="total_co2_kg",
-    title="Daily CO₂ Emissions Trend (kg)"
+    title="Daily CO₂ Emissions Trend (kg)",
 )
 
 st.plotly_chart(trend_fig, use_container_width=True)
@@ -82,10 +83,7 @@ st.plotly_chart(trend_fig, use_container_width=True)
 # -----------------------------
 st.subheader("🏭 Facility-wise Emissions")
 
-facility_df = (
-    df.groupby("facility", as_index=False)["total_co2_kg"]
-    .sum()
-)
+facility_df = df.groupby("facility", as_index=False)["total_co2_kg"].sum()
 
 facility_fig = px.bar(
     facility_df,
@@ -97,21 +95,28 @@ facility_fig = px.bar(
 st.plotly_chart(facility_fig, use_container_width=True)
 
 # -----------------------------
-# CSRD / GRI Compliance Mapping
+# ESG Framework Compliance
 # -----------------------------
-st.subheader("📘 CSRD / GRI Framework Mapping")
+st.subheader("📘 ESG Framework Compliance")
 
-mapping_data = get_csrd_gri_mapping()
-mapping_df = pd.DataFrame(mapping_data)
+frameworks = get_all_framework_mappings()
+
+selected_framework = st.selectbox(
+    "Select Reporting Framework",
+    list(frameworks.keys())
+)
+
+framework_df = pd.DataFrame(frameworks[selected_framework])
 
 st.dataframe(
-    mapping_df,
+    framework_df,
     use_container_width=True,
     hide_index=True,
 )
 
 st.caption(
-    "This table maps calculated ESG metrics to CSRD (ESRS) and GRI disclosure requirements."
+    "Framework mappings are based on available ESG metrics and current disclosure maturity. "
+    "Coverage expands as additional data and disclosures are added."
 )
 
 # -----------------------------
@@ -139,7 +144,7 @@ st.metric(
 
 breakdown_df = pd.DataFrame(
     breakdown.items(),
-    columns=["Assessment Area", "Score Contribution"]
+    columns=["Assessment Area", "Score Contribution"],
 )
 
 st.dataframe(
@@ -149,14 +154,10 @@ st.dataframe(
 )
 
 st.caption(
-    "Audit readiness is calculated based on data completeness, emissions coverage, renewable transparency, and CSRD/GRI alignment."
+    "Audit readiness is calculated based on data completeness, emissions coverage, "
+    "renewable transparency, and framework alignment."
 )
 
-# -----------------------------
-# Raw Data Viewer
-# -----------------------------
-with st.expander("🔍 View Raw ESG Data"):
-    st.dataframe(df)
 # -----------------------------
 # CSRD Gap Analysis Report
 # -----------------------------
@@ -164,7 +165,7 @@ st.subheader("📑 CSRD Gap Analysis")
 
 csrd_pdf_bytes = generate_csrd_gap_pdf(
     kpis=kpis,
-    audit_score=score
+    audit_score=score,
 )
 
 st.download_button(
@@ -173,6 +174,7 @@ st.download_button(
     file_name="csrd_gap_analysis_report.pdf",
     mime="application/pdf",
 )
+
 # -----------------------------
 # Scope 3 Emissions (Estimated)
 # -----------------------------
@@ -181,7 +183,7 @@ st.subheader("🌍 Scope 3 Emissions (Estimated)")
 scope3_file = st.file_uploader(
     "Upload Scope 3 Spend Data (CSV)",
     type="csv",
-    key="scope3"
+    key="scope3",
 )
 
 if scope3_file is not None:
@@ -194,7 +196,7 @@ scope3_total = aggregate_scope3_kpi(scope3_result)
 
 st.metric(
     "Estimated Scope 3 CO₂ (kg)",
-    scope3_total
+    scope3_total,
 )
 
 st.dataframe(scope3_result, use_container_width=True)
@@ -203,6 +205,7 @@ st.caption(
     "Scope 3 emissions are estimated using a spend-based methodology "
     "(CSRD-acceptable for early maturity stages)."
 )
+
 # -----------------------------
 # CSRD Maturity Scoring by Year
 # -----------------------------
@@ -214,16 +217,22 @@ scope3_present = scope3_total > 0
 maturity = calculate_csrd_maturity(
     year=current_year,
     audit_score=score,
-    scope3_present=scope3_present
+    scope3_present=scope3_present,
 )
 
 st.metric(
     "CSRD Maturity Level",
-    f"Level {maturity['maturity_level']} – {maturity['maturity_label']}"
+    f"Level {maturity['maturity_level']} – {maturity['maturity_label']}",
 )
 
 maturity_df = pd.DataFrame([maturity])
 st.dataframe(maturity_df, use_container_width=True)
+
+# -----------------------------
+# Raw Data Viewer
+# -----------------------------
+with st.expander("🔍 View Raw ESG Data"):
+    st.dataframe(df)
 
 # -----------------------------
 # ESG Report Download (END)
