@@ -8,6 +8,8 @@ from frameworks.csrd_gri_mapping import get_csrd_gri_mapping
 from audit.audit_score import calculate_audit_readiness_score
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
 from esg.scope3 import estimate_scope3_emissions, aggregate_scope3_kpi
+from audit.csrd_maturity import calculate_csrd_maturity
+from datetime import datetime
 
 # -----------------------------
 # App Configuration
@@ -201,6 +203,27 @@ st.caption(
     "Scope 3 emissions are estimated using a spend-based methodology "
     "(CSRD-acceptable for early maturity stages)."
 )
+# -----------------------------
+# CSRD Maturity Scoring by Year
+# -----------------------------
+st.subheader("📈 CSRD Maturity Scoring")
+
+current_year = datetime.now().year
+scope3_present = scope3_total > 0
+
+maturity = calculate_csrd_maturity(
+    year=current_year,
+    audit_score=score,
+    scope3_present=scope3_present
+)
+
+st.metric(
+    "CSRD Maturity Level",
+    f"Level {maturity['maturity_level']} – {maturity['maturity_label']}"
+)
+
+maturity_df = pd.DataFrame([maturity])
+st.dataframe(maturity_df, use_container_width=True)
 
 # -----------------------------
 # ESG Report Download (END)
