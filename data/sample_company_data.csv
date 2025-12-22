@@ -1,0 +1,7 @@
+date,facility,energy_kwh,renewable_kwh,fuel_liters
+2024-01-01,Plant A,12000,3000,500
+2024-01-02,Plant A,11000,2500,480
+2024-01-03,Plant A,13000,4000,520
+2024-01-01,Plant B,9000,2000,300
+2024-01-02,Plant B,9500,2200,320
+2024-01-03,Plant B,10000,2500,340
