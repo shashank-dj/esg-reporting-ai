@@ -11,6 +11,7 @@ from audit.audit_score import calculate_audit_readiness_score
 from audit.csrd_maturity import calculate_csrd_maturity
 
 from frameworks.framework_registry import get_all_framework_mappings
+from frameworks.framework_coverage import get_framework_coverage
 
 from reports.pdf_report import generate_esg_pdf
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
@@ -227,6 +228,25 @@ st.metric(
 
 maturity_df = pd.DataFrame([maturity])
 st.dataframe(maturity_df, use_container_width=True)
+# -----------------------------
+# Framework Coverage Heatmap
+# -----------------------------
+st.subheader("🧩 Framework Coverage Heatmap")
+
+coverage_data = get_framework_coverage()
+coverage_df = pd.DataFrame(coverage_data)
+
+st.dataframe(
+    coverage_df,
+    use_container_width=True,
+    hide_index=True,
+)
+
+st.caption(
+    "✔ = Compliant | ⚠ = Partial | ❌ = Not Covered. "
+    "This heatmap provides a high-level view of ESG framework readiness "
+    "across CSRD, GRI, SASB, and TCFD."
+)
 
 # -----------------------------
 # Raw Data Viewer
