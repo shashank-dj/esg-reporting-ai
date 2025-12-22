@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 from esg.emissions import calculate_emissions, aggregate_kpis
+from reports.pdf_report import generate_esg_pdf
 
 st.set_page_config(page_title="ESG Reporting MVP", layout="wide")
 
@@ -54,6 +55,19 @@ fig = px.line(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+
+st.subheader("📄 ESG Report")
+
+pdf_bytes = generate_esg_pdf(kpis)
+
+st.download_button(
+    label="⬇️ Download ESG Report (PDF)",
+    data=pdf_bytes,
+    file_name="esg_environmental_report.pdf",
+    mime="application/pdf",
+)
+
 
 # -----------------------------
 # Facility Breakdown
