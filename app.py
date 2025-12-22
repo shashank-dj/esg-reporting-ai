@@ -12,6 +12,7 @@ from frameworks.framework_coverage import get_framework_coverage
 from explainability.audit_trace import generate_audit_trace
 from reports.pdf_report import generate_esg_pdf
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
+from finance.esg_finance_mapping import get_esg_financial_linkage
 
 # -----------------------------
 # App Configuration
@@ -176,11 +177,24 @@ with tab7:
 
     st.markdown(
         """
-        This module translates ESG performance into **financial risk and value signals**.
-        It provides directional insights to support **capital allocation, risk management,
-        and executive decision-making**.
+        This view links ESG performance to **financial risk and value signals**.
+        Insights are directional and designed for **executive decision-making**.
         """
     )
 
-    st.divider()
+    # 🔗 ESG → Finance linkage
+    finance_insights = get_esg_financial_linkage(
+        kpis=kpis,
+        audit_score=score,
+        maturity_level=maturity["maturity_level"]
+    )
+
+    finance_df = pd.DataFrame(finance_insights)
+
+    st.dataframe(
+        finance_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
 
