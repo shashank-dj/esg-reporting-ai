@@ -12,6 +12,7 @@ from audit.csrd_maturity import calculate_csrd_maturity
 
 from frameworks.framework_registry import get_all_framework_mappings
 from frameworks.framework_coverage import get_framework_coverage
+from explainability.audit_trace import generate_audit_trace
 
 from reports.pdf_report import generate_esg_pdf
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
@@ -158,6 +159,8 @@ st.caption(
     "Audit readiness is calculated based on data completeness, emissions coverage, "
     "renewable transparency, and framework alignment."
 )
+audit_trace = generate_audit_trace(df, kpis)
+
 with st.expander("🔍 Explain this score"):
     st.json(audit_trace)
 # -----------------------------
