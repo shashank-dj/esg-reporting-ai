@@ -15,6 +15,18 @@ from reports.csrd_gap_analysis import generate_csrd_gap_pdf
 from finance.esg_finance_mapping import get_esg_financial_linkage
 
 # -----------------------------
+# Helper: Financial Signal Formatter
+# -----------------------------
+def format_financial_signal(signal: str) -> str:
+    if signal in ["High", "Weak"]:
+        return f"🔴 {signal}"
+    elif signal in ["Moderate", "Improving"]:
+        return f"🟡 {signal}"
+    elif signal in ["Low"]:
+        return f"🟢 {signal}"
+    return signal
+
+# -----------------------------
 # App Configuration
 # -----------------------------
 st.set_page_config(
@@ -170,20 +182,21 @@ with tab6:
         file_name="csrd_gap_analysis_report.pdf",
         mime="application/pdf",
     )
+
 # -----------------------------
-# TAB 7: Financial Impact
+# TAB 7: ESG → Financial Impact
 # -----------------------------
 with tab7:
     st.subheader("💰 ESG → Financial Impact")
 
     st.markdown(
         """
-        This view links ESG performance to **financial risk and value signals**.
-        Insights are directional and designed for **executive decision-making**.
+        This view translates ESG performance into **financial risk and value signals**.
+        Insights are **directional**, designed for **executive and CFO decision-making**.
         """
     )
 
-    # 🔗 ESG → Finance linkage
+    # ESG → Finance linkage
     finance_insights = get_esg_financial_linkage(
         kpis=kpis,
         audit_score=score,
@@ -191,6 +204,7 @@ with tab7:
     )
 
     finance_df = pd.DataFrame(finance_insights)
+    finance_df["Financial Signal"] = finance_df["Financial Signal"].apply(format_financial_signal)
 
     st.dataframe(
         finance_df,
@@ -198,4 +212,47 @@ with tab7:
         hide_index=True
     )
 
+    # -----------------------------
+    # CFO Summary
+    # -----------------------------
+    st.divider()
 
+    high_risk = finance_df["Financial Signal"].str.contains("🔴").sum()
+    moderate_risk = finance_df["Financial Signal"].str.contains("🟡").sum()
+
+    if high_risk > 0:
+        st.error(
+            f"💼 CFO Summary: {high_risk} ESG drivers present **elevated financial risk** "
+            "and should be prioritized for mitigation."
+        )
+    elif moderate_risk > 0:
+        st.warning(
+            "💼 CFO Summary: ESG performance shows **moderate financial exposure** "
+            "with opportunities for cost and risk optimization."
+        )
+    else:
+        st.success(
+            "💼 CFO Summary: ESG performance indicates **low financial risk** "
+            "and supports long-term value stability."
+        )
+
+    # -----------------------------
+    # ESG Decision Path
+    # -----------------------------
+    st.subheader("🔗 ESG Decision Path")
+
+    st.markdown(
+        """
+        **Renewable Energy Usage ↑**  
+        → Energy Cost Volatility ↓  
+        → Operating Cost Stability ↑  
+        → Audit Readiness ↑  
+        → CSRD Maturity ↑  
+        """
+    )
+
+    st.info(
+        "🎯 Demo Insight: Improving renewable energy sourcing delivers the strongest "
+        "combined ESG and financial impact across cost stability, audit readiness, "
+        "and regulatory risk."
+    )
