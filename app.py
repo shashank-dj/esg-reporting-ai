@@ -46,13 +46,14 @@ kpis = aggregate_kpis(df)
 # -----------------------------
 # Tabs
 # -----------------------------
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📊 Overview",
     "📘 Frameworks",
     "🛡️ Audit & Risk",
     "🌍 Scope 3",
     "📈 CSRD Maturity",
     "📄 Reports",
+    "💰 ESG → Financial Impact",
 ])
 
 # -----------------------------
