@@ -1,3 +1,8 @@
+import os
+import streamlit as st
+
+st.write("OPENAI key loaded:", bool(os.getenv("OPENAI_API_KEY")))
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
