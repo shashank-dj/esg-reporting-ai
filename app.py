@@ -53,16 +53,40 @@ if uploaded_file is not None:
 else:
     df = pd.read_csv("data/sample_company_data.csv")
 
+# -----------------------------
+# Core ESG Calculations
+# -----------------------------
 df = calculate_emissions(df)
 kpis = aggregate_kpis(df)
 
-# -----------------------------
-# Data Quality Assessment
-# -----------------------------
+audit = calculate_audit_readiness_score(df, kpis)
+score = audit["total_score"]
+
 quality_result = assess_data_quality(df)
 
+scope3_present = False
+
 # -----------------------------
-# Tabs
+# CSRD Maturity (needed by multiple tabs/pages)
+# -----------------------------
+maturity = calculate_csrd_maturity(
+    year=datetime.now().year,
+    audit_score=score,
+    scope3_present=False,  # updated later if scope 3 is loaded
+)
+
+# -----------------------------
+# 🔑 STORE SHARED STATE (CRITICAL FOR PAGES)
+# -----------------------------
+st.session_state["df"] = df
+st.session_state["kpis"] = kpis
+st.session_state["audit_score"] = score
+st.session_state["audit"] = audit
+st.session_state["quality"] = quality_result
+st.session_state["maturity"] = maturity
+
+# -----------------------------
+# Tabs (Demo / Overview Mode)
 # -----------------------------
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Overview",
@@ -113,9 +137,6 @@ with tab2:
 with tab3:
     st.subheader("🛡️ Audit Readiness Score")
 
-    audit = calculate_audit_readiness_score(df, kpis)
-    score = audit["total_score"]
-
     st.metric("Audit Readiness (0–100)", score)
 
     st.dataframe(
@@ -134,7 +155,11 @@ with tab3:
     else:
         st.success("No major data quality issues detected")
 
-    st.json(quality_result["quality_flags"])
+    flags_df = pd.DataFrame(
+        quality_result["quality_flags"].items(),
+        columns=["Metric", "Quality Flag"]
+    )
+    st.dataframe(flags_df, use_container_width=True)
 
 # -----------------------------
 # TAB 4: Scope 3
@@ -142,29 +167,33 @@ with tab3:
 with tab4:
     st.subheader("🌍 Scope 3 Emissions (Estimated)")
 
-    scope3_file = st.file_uploader("Upload Scope 3 Spend Data (CSV)", type="csv", key="scope3")
+    scope3_file = st.file_uploader(
+        "Upload Scope 3 Spend Data (CSV)",
+        type="csv",
+        key="scope3"
+    )
 
     if scope3_file is not None:
         scope3_df = pd.read_csv(scope3_file)
-    else:
-        scope3_df = pd.read_csv("data/sample_scope3_spend.csv")
+        scope3_result = estimate_scope3_emissions(scope3_df)
+        scope3_total = aggregate_scope3_kpi(scope3_result)
+        scope3_present = scope3_total > 0
 
-    scope3_result = estimate_scope3_emissions(scope3_df)
-    scope3_total = aggregate_scope3_kpi(scope3_result)
+        st.metric("Estimated Scope 3 CO₂ (kg)", scope3_total)
+        st.dataframe(scope3_result, use_container_width=True)
 
-    st.metric("Estimated Scope 3 CO₂ (kg)", scope3_total)
-    st.dataframe(scope3_result, use_container_width=True)
+        # Update maturity once scope 3 is known
+        maturity = calculate_csrd_maturity(
+            year=datetime.now().year,
+            audit_score=score,
+            scope3_present=scope3_present,
+        )
+        st.session_state["maturity"] = maturity
 
 # -----------------------------
 # TAB 5: CSRD Maturity
 # -----------------------------
 with tab5:
-    maturity = calculate_csrd_maturity(
-        year=datetime.now().year,
-        audit_score=score,
-        scope3_present=scope3_total > 0,
-    )
-
     st.metric(
         "CSRD Maturity Level",
         f"Level {maturity['maturity_level']} – {maturity['maturity_label']}",
