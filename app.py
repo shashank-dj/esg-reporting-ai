@@ -218,25 +218,35 @@ with tab6:
     use_ai = st.toggle("🤖 Use AI Narrative Copilot")
 
     if use_ai:
-        llm = OpenAILLMClient()
-
-        context = build_esg_context(
-            kpis=kpis,
-            audit=st.session_state["audit"],
-            maturity=maturity,
-            data_quality=st.session_state["quality"]
-        )
-
-        with st.spinner("Generating AI-powered ESG narrative..."):
-            ai_text = generate_ai_narrative(context, llm)
-
-        st.markdown(ai_text)
-
-        st.caption(
-            "AI-generated narrative grounded strictly in reported ESG data. "
-            "No external assumptions applied."
-        )
-
+        try:
+            llm = OpenAILLMClient()
+    
+            context = build_esg_context(
+                kpis=kpis,
+                audit=st.session_state["audit"],
+                maturity=maturity,
+                data_quality=st.session_state["quality"]
+            )
+    
+            with st.spinner("Generating AI-powered ESG narrative..."):
+                ai_text = generate_ai_narrative(context, llm)
+    
+            st.markdown(ai_text)
+    
+            st.caption(
+                "AI-generated narrative grounded strictly in reported ESG data."
+            )
+    
+        except Exception as e:
+            st.warning(
+                "⚠️ AI service is temporarily unavailable. "
+                "Showing standard ESG narrative instead."
+            )
+    
+            narrative = generate_esg_narrative(kpis, score, maturity)
+            for section, text in narrative.items():
+                st.markdown(f"### {section}")
+                st.write(text)
     else:
         narrative = generate_esg_narrative(kpis, score, maturity)
         for section, text in narrative.items():
