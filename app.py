@@ -14,6 +14,10 @@ from reports.pdf_report import generate_esg_pdf
 from reports.csrd_gap_analysis import generate_csrd_gap_pdf
 from finance.esg_finance_mapping import get_esg_financial_linkage
 
+from quality.data_quality import assess_data_quality
+from reports.narrative_builder import generate_esg_narrative
+from versioning.period_comparison import compare_periods
+
 # -----------------------------
 # Helper: Financial Signal Formatter
 # -----------------------------
@@ -38,14 +42,11 @@ st.title("🌱 ESG Reporting Platform")
 st.caption("Enterprise ESG Reporting • CSRD Compliance • Audit Intelligence")
 
 # -----------------------------
-# Load Data (Shared Across Tabs)
+# Load Data
 # -----------------------------
 st.subheader("📂 Data Input")
 
-uploaded_file = st.file_uploader(
-    "Upload ESG Data (CSV)",
-    type="csv"
-)
+uploaded_file = st.file_uploader("Upload ESG Data (CSV)", type="csv")
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -56,16 +57,22 @@ df = calculate_emissions(df)
 kpis = aggregate_kpis(df)
 
 # -----------------------------
+# Data Quality Assessment
+# -----------------------------
+quality_result = assess_data_quality(df)
+
+# -----------------------------
 # Tabs
 # -----------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Overview",
     "📘 Frameworks",
-    "🛡️ Audit & Risk",
+    "🛡️ Audit & Data Quality",
     "🌍 Scope 3",
     "📈 CSRD Maturity",
-    "📄 Reports",
+    "📖 ESG Narrative",
     "💰 ESG → Financial Impact",
+    "📄 Reports & Versioning",
 ])
 
 # -----------------------------
@@ -101,7 +108,7 @@ with tab2:
     st.dataframe(pd.DataFrame(get_framework_coverage()), use_container_width=True)
 
 # -----------------------------
-# TAB 3: Audit & Risk
+# TAB 3: Audit & Data Quality
 # -----------------------------
 with tab3:
     st.subheader("🛡️ Audit Readiness Score")
@@ -111,15 +118,23 @@ with tab3:
 
     st.metric("Audit Readiness (0–100)", score)
 
-    breakdown_df = pd.DataFrame(
-        audit["breakdown"].items(),
-        columns=["Area", "Score Contribution"]
+    st.dataframe(
+        pd.DataFrame(audit["breakdown"].items(), columns=["Area", "Score Contribution"]),
+        use_container_width=True,
     )
-    st.dataframe(breakdown_df, use_container_width=True)
 
-    audit_trace = generate_audit_trace(df, kpis)
-    with st.expander("🔍 Explain this score"):
-        st.json(audit_trace)
+    with st.expander("🔍 Audit Explainability"):
+        st.json(generate_audit_trace(df, kpis))
+
+    st.subheader("📋 Data Quality & Validation")
+
+    if quality_result["issues"]:
+        st.warning("Data quality issues detected")
+        st.dataframe(pd.DataFrame(quality_result["issues"]), use_container_width=True)
+    else:
+        st.success("No major data quality issues detected")
+
+    st.json(quality_result["quality_flags"])
 
 # -----------------------------
 # TAB 4: Scope 3
@@ -127,11 +142,7 @@ with tab3:
 with tab4:
     st.subheader("🌍 Scope 3 Emissions (Estimated)")
 
-    scope3_file = st.file_uploader(
-        "Upload Scope 3 Spend Data (CSV)",
-        type="csv",
-        key="scope3"
-    )
+    scope3_file = st.file_uploader("Upload Scope 3 Spend Data (CSV)", type="csv", key="scope3")
 
     if scope3_file is not None:
         scope3_df = pd.read_csv(scope3_file)
@@ -148,26 +159,53 @@ with tab4:
 # TAB 5: CSRD Maturity
 # -----------------------------
 with tab5:
-    st.subheader("📈 CSRD Maturity Scoring")
-
     maturity = calculate_csrd_maturity(
         year=datetime.now().year,
         audit_score=score,
-        scope3_present=scope3_total > 0
+        scope3_present=scope3_total > 0,
     )
 
     st.metric(
         "CSRD Maturity Level",
-        f"Level {maturity['maturity_level']} – {maturity['maturity_label']}"
+        f"Level {maturity['maturity_level']} – {maturity['maturity_label']}",
     )
 
     st.dataframe(pd.DataFrame([maturity]), use_container_width=True)
 
 # -----------------------------
-# TAB 6: Reports
+# TAB 6: ESG Narrative
 # -----------------------------
 with tab6:
-    st.subheader("📄 Download Reports")
+    st.subheader("📖 ESG Narrative & Disclosure")
+
+    narrative = generate_esg_narrative(kpis, score, maturity)
+
+    for section, text in narrative.items():
+        st.markdown(f"### {section}")
+        st.write(text)
+
+# -----------------------------
+# TAB 7: ESG → Financial Impact
+# -----------------------------
+with tab7:
+    st.subheader("💰 ESG → Financial Impact")
+
+    finance_insights = get_esg_financial_linkage(
+        kpis=kpis,
+        audit_score=score,
+        maturity_level=maturity["maturity_level"],
+    )
+
+    finance_df = pd.DataFrame(finance_insights)
+    finance_df["Financial Signal"] = finance_df["Financial Signal"].apply(format_financial_signal)
+
+    st.dataframe(finance_df, use_container_width=True, hide_index=True)
+
+# -----------------------------
+# TAB 8: Reports & Versioning
+# -----------------------------
+with tab8:
+    st.subheader("📄 Reports")
 
     st.download_button(
         "⬇️ ESG Environmental Report",
@@ -183,76 +221,12 @@ with tab6:
         mime="application/pdf",
     )
 
-# -----------------------------
-# TAB 7: ESG → Financial Impact
-# -----------------------------
-with tab7:
-    st.subheader("💰 ESG → Financial Impact")
+    st.subheader("📅 Year-over-Year Comparison")
 
-    st.markdown(
-        """
-        This view translates ESG performance into **financial risk and value signals**.
-        Insights are **directional**, designed for **executive and CFO decision-making**.
-        """
-    )
+    previous_kpis = {
+        "Total CO₂ (kg)": kpis["Total CO₂ (kg)"] * 1.1,
+        "Renewable Energy (%)": max(0, kpis["Renewable Energy (%)"] - 5),
+    }
 
-    # ESG → Finance linkage
-    finance_insights = get_esg_financial_linkage(
-        kpis=kpis,
-        audit_score=score,
-        maturity_level=maturity["maturity_level"]
-    )
-
-    finance_df = pd.DataFrame(finance_insights)
-    finance_df["Financial Signal"] = finance_df["Financial Signal"].apply(format_financial_signal)
-
-    st.dataframe(
-        finance_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    # -----------------------------
-    # CFO Summary
-    # -----------------------------
-    st.divider()
-
-    high_risk = finance_df["Financial Signal"].str.contains("🔴").sum()
-    moderate_risk = finance_df["Financial Signal"].str.contains("🟡").sum()
-
-    if high_risk > 0:
-        st.error(
-            f"💼 CFO Summary: {high_risk} ESG drivers present **elevated financial risk** "
-            "and should be prioritized for mitigation."
-        )
-    elif moderate_risk > 0:
-        st.warning(
-            "💼 CFO Summary: ESG performance shows **moderate financial exposure** "
-            "with opportunities for cost and risk optimization."
-        )
-    else:
-        st.success(
-            "💼 CFO Summary: ESG performance indicates **low financial risk** "
-            "and supports long-term value stability."
-        )
-
-    # -----------------------------
-    # ESG Decision Path
-    # -----------------------------
-    st.subheader("🔗 ESG Decision Path")
-
-    st.markdown(
-        """
-        **Renewable Energy Usage ↑**  
-        → Energy Cost Volatility ↓  
-        → Operating Cost Stability ↑  
-        → Audit Readiness ↑  
-        → CSRD Maturity ↑  
-        """
-    )
-
-    st.info(
-        "🎯 Demo Insight: Improving renewable energy sourcing delivers the strongest "
-        "combined ESG and financial impact across cost stability, audit readiness, "
-        "and regulatory risk."
-    )
+    comparison = compare_periods(kpis, previous_kpis)
+    st.dataframe(pd.DataFrame(comparison), use_container_width=True)
