@@ -18,6 +18,9 @@ from quality.data_quality import assess_data_quality
 from reports.narrative_builder import generate_esg_narrative
 from versioning.period_comparison import compare_periods
 
+from ai.esg_narrative_copilot import build_esg_context, generate_ai_narrative
+from ai.llm_client import OpenAILLMClient
+
 # -----------------------------
 # Helper: Financial Signal Formatter
 # -----------------------------
@@ -207,11 +210,34 @@ with tab5:
 with tab6:
     st.subheader("📖 ESG Narrative & Disclosure")
 
-    narrative = generate_esg_narrative(kpis, score, maturity)
+    use_ai = st.toggle("🤖 Use AI Narrative Copilot")
 
-    for section, text in narrative.items():
-        st.markdown(f"### {section}")
-        st.write(text)
+    if use_ai:
+        llm = OpenAILLMClient()
+
+        context = build_esg_context(
+            kpis=kpis,
+            audit=st.session_state["audit"],
+            maturity=maturity,
+            data_quality=st.session_state["quality"]
+        )
+
+        with st.spinner("Generating AI-powered ESG narrative..."):
+            ai_text = generate_ai_narrative(context, llm)
+
+        st.markdown(ai_text)
+
+        st.caption(
+            "AI-generated narrative grounded strictly in reported ESG data. "
+            "No external assumptions applied."
+        )
+
+    else:
+        narrative = generate_esg_narrative(kpis, score, maturity)
+        for section, text in narrative.items():
+            st.markdown(f"### {section}")
+            st.write(text)
+
 
 # -----------------------------
 # TAB 7: ESG → Financial Impact
