@@ -145,29 +145,104 @@ with tab2:
 with tab3:
     st.subheader("🛡️ Audit Readiness Score")
 
+    # -----------------------------
+    # Audit Score + Severity Badge
+    # -----------------------------
     st.metric("Audit Readiness (0–100)", score)
 
+    if score >= 80:
+        st.success("🟢 Low Audit Risk")
+    elif score >= 50:
+        st.warning("🟡 Moderate Audit Risk")
+    else:
+        st.error("🔴 High Audit Risk")
+
+    # -----------------------------
+    # Audit Breakdown
+    # -----------------------------
+    st.subheader("📋 Audit Score Breakdown")
+
     st.dataframe(
-        pd.DataFrame(audit["breakdown"].items(), columns=["Area", "Score Contribution"]),
+        pd.DataFrame(
+            audit["breakdown"].items(),
+            columns=["Assessment Area", "Score Contribution"]
+        ),
         use_container_width=True,
     )
 
-    with st.expander("🔍 Audit Explainability"):
-        st.json(generate_audit_trace(df, kpis))
+    # -----------------------------
+    # AI Audit Risk Explanation
+    # -----------------------------
+    st.subheader("🤖 Audit Risk Explanation")
 
+    use_ai_audit = st.toggle("Use AI Audit Risk Explanation")
+
+    if use_ai_audit:
+        try:
+            from ai.audit_risk_explainer import (
+                build_audit_risk_context,
+                generate_ai_audit_explanation
+            )
+            from ai.llm_client import OpenAILLMClient
+
+            llm = OpenAILLMClient()
+
+            risk_context = build_audit_risk_context(
+                audit=audit,
+                data_quality=quality_result,
+                maturity=maturity
+            )
+
+            with st.spinner("Analyzing audit risk drivers..."):
+                ai_audit_text = generate_ai_audit_explanation(
+                    risk_context,
+                    llm
+                )
+
+            st.markdown(ai_audit_text)
+
+            st.caption(
+                "AI-generated audit explanation grounded strictly in reported ESG data, "
+                "audit metrics, and data quality indicators."
+            )
+
+        except Exception:
+            st.warning(
+                "⚠️ AI audit explanation is temporarily unavailable. "
+                "Showing standard audit explainability instead."
+            )
+
+            with st.expander("🔍 Audit Explainability (Rule-based)"):
+                st.json(generate_audit_trace(df, kpis))
+    else:
+        with st.expander("🔍 Audit Explainability (Rule-based)"):
+            st.json(generate_audit_trace(df, kpis))
+
+    # -----------------------------
+    # Data Quality & Validation
+    # -----------------------------
     st.subheader("📋 Data Quality & Validation")
 
     if quality_result["issues"]:
-        st.warning("Data quality issues detected")
-        st.dataframe(pd.DataFrame(quality_result["issues"]), use_container_width=True)
+        st.warning("⚠️ Data quality issues detected")
+        st.dataframe(
+            pd.DataFrame(quality_result["issues"]),
+            use_container_width=True
+        )
     else:
-        st.success("No major data quality issues detected")
+        st.success("✅ No major data quality issues detected")
 
     flags_df = pd.DataFrame(
         quality_result["quality_flags"].items(),
         columns=["Metric", "Quality Flag"]
     )
+
     st.dataframe(flags_df, use_container_width=True)
+
+    st.caption(
+        "Measured = Directly captured | Estimated = Model-based | "
+        "Assumed = Incomplete or missing data"
+    )
 
 # -----------------------------
 # TAB 4: Scope 3
